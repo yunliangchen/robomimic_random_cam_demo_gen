@@ -55,7 +55,7 @@ def make_generator_helper(args):
             name="ds",
             group=2,
             values=[
-                [{"path": p} for p in scan_datasets("~/Downloads/example_pen_in_cup", postfix="trajectory_im128.h5")],
+                [{"path": p, "lang": "put the pen in the cup"} for p in scan_datasets("~/Downloads/example_pen_in_cup", postfix="trajectory_im128.h5")],
             ],
             value_names=[
                 "pen-in-cup",

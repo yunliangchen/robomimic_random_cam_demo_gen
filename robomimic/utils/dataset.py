@@ -962,6 +962,10 @@ class R2D2Dataset(SequenceDataset):
         # also return the sampled index
         meta["index"] = index
 
+        # language embedding
+        T = meta["actions"].shape[0]
+        meta["obs"]["lang_emb"] = np.tile(self._lang_emb, (T, 1))
+
         return meta
 
 
