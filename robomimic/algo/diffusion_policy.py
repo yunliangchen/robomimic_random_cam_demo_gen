@@ -51,6 +51,9 @@ class DiffusionPolicyUNet(PolicyAlgo):
         """
         Creates networks and places them into @self.nets.
         """
+        if self.algo_config.language_conditioned:
+            self.obs_shapes["lang_emb"] = [768] # clip is 768-dim embedding
+
         # set up different observation groups for @MIMO_MLP
         observation_group_shapes = OrderedDict()
         observation_group_shapes["obs"] = OrderedDict(self.obs_shapes)

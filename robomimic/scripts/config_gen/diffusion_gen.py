@@ -138,6 +138,16 @@ def make_generator_helper(args):
             ],
         )
 
+        generator.add_param(
+            key="algo.language_conditioned",
+            name="langcond",
+            group=145892,
+            values=[
+                True,
+                False,
+            ],
+        )
+
     elif args.env == "kitchen":
         generator.add_param(
             key="train.data",
