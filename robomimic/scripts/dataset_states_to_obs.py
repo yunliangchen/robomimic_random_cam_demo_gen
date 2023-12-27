@@ -51,6 +51,7 @@ import os
 import json
 import h5py
 import argparse
+import re
 import numpy as np
 from copy import deepcopy
 from tqdm import tqdm
@@ -186,8 +187,10 @@ def get_camera_info(
         R = env.get_camera_extrinsic_matrix(camera_name=cam_name) # camera pose in world frame
         if "eye_in_hand" in cam_name:
             # convert extrinsic matrix to be relative to robot eef control frame
-            assert cam_name.startswith("robot0")
-            eef_site_name = env.base_env.robots[0].controller.eef_name
+            assert cam_name.startswith("robot")
+            match = re.search(r'\d+', cam_name)
+            robot_id = int(match.group())
+            eef_site_name = env.base_env.robots[robot_id].controller.eef_name
             eef_pos = np.array(env.base_env.sim.data.site_xpos[env.base_env.sim.model.site_name2id(eef_site_name)])
             eef_rot = np.array(env.base_env.sim.data.site_xmat[env.base_env.sim.model.site_name2id(eef_site_name)].reshape([3, 3]))
             eef_pose = np.zeros((4, 4)) # eef pose in world frame
