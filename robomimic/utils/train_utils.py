@@ -242,7 +242,12 @@ def run_rollout(
             # visualization
             if video_writer is not None:
                 if video_count % video_skip == 0:
-                    video_img = env.render(mode="rgb_array", height=512, width=512)
+                    # video_img = env.render(mode="rgb_array", height=512, width=512)
+                    # video_writer.append_data(video_img)
+                    video_img = []
+                    for cam_name in ["agentview", "robot0_eye_in_hand"]:
+                        video_img.append(env.render(mode="rgb_array", height=512, width=512, camera_name=cam_name))
+                    video_img = np.concatenate(video_img, axis=1) # concatenate horizontally
                     video_writer.append_data(video_img)
 
                 video_count += 1

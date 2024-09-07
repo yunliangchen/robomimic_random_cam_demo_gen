@@ -11,11 +11,6 @@ import robosuite
 import robosuite.utils.transform_utils as T
 try:
     # this is needed for ensuring robosuite can find the additional mimicgen environments (see https://mimicgen.github.io)
-    import mimicgen
-except ImportError:
-    pass
-try:
-    # deprecated version of mimicgen
     import mimicgen_envs
 except ImportError:
     pass
@@ -160,16 +155,8 @@ class EnvRobosuite(EB.EnvBase):
             else:
                 # v1.4 and above use the class-based edit_model_xml function
                 xml = self.env.edit_model_xml(state["model"])
-            # this resets the sim according to the xml stored in the demos and the cameras added will go away
-            # comment this out for now
-            # self.env.reset_from_xml_string(xml)
-            # necessary changes to update the modder after the sim reset
-            # for modder in self.env.modders:
-            #     modder.update_sim(self.env.sim)
+            self.env.reset_from_xml_string(xml)
             self.env.sim.reset()
-            # # necessary changes to update the modder after the sim reset
-            # for modder in self.env.modders:
-            #     modder.update_sim(self.env.sim)
             if not self._is_v1:
                 # hide teleop visualization after restoring from model
                 self.env.sim.model.site_rgba[self.env.eef_site_id] = np.array([0., 0., 0., 0.])
@@ -178,72 +165,13 @@ class EnvRobosuite(EB.EnvBase):
             self.env.sim.set_state_from_flattened(state["states"])
             self.env.sim.forward()
             should_ret = True
-            # domain randomization should be re-applied after setting the state
-            # self.env.randomize_domain()
 
         if "goal" in state:
             self.set_goal(**state["goal"])
         if should_ret:
-            # get camera pose and fov for all cameras
-            camera_info = self.get_all_camera_info()
             # only return obs if we've done a forward call - otherwise the observations will be garbage
-            return self.get_observation(), camera_info
+            return self.get_observation()
         return None
-
-    def get_all_camera_info(self):
-        """
-        Get camera pose, intrinsic, and extrinsic matrices for all cameras.
-
-        Returns:
-            camera_info (dict): dictionary with camera name as key and a dictionary with
-                "camera_pose", "camera_intrinsics", and "camera_extrinsics" as values.
-        """
-        camera_info = {}
-        for camera_name in self.env.camera_names:
-            # camera_pose, camera_fovy = self.get_camera_pose_fov(camera_name)
-            camera_intrinsics = self.get_camera_intrinsic_matrix(
-                camera_name=camera_name, camera_height=self.env.camera_heights[0], camera_width=self.env.camera_widths[0]
-            )
-            camera_extrinsics = self.get_camera_extrinsic_matrix(camera_name=camera_name)
-            # Robot base in the world coord is usually but not always -0.56 0.0 0.912
-            # base position
-            robot_base_pos = np.array([float(x) for x in self.env.robots[0].robot_model._elements["root_body"].get("pos").split(" ")])
-            camera_extrinsics[:3, 3] -= robot_base_pos
-            camera_info[camera_name] = {
-                # "camera_pose": camera_pose.tolist(), # equivalent to camera_extrinsics
-                "camera_intrinsics": camera_intrinsics.tolist(),
-                "camera_extrinsics": camera_extrinsics.tolist(),
-            }
-        return camera_info
-
-    def get_camera_pose_fov(self, camera_name):
-        """
-        Get camera pose wrt robot and fov.
-
-        Args:
-            camera_name (str): name of camera
-        
-        Returns:
-            pose (np.array): 4x4 camera pose matrix
-            fovy (float): camera field of view
-        """
-        # Robot base in the world coord is usually but not always -0.56 0.0 0.912
-        # base position
-        robot_base_pos = np.array([float(x) for x in self.env.robots[0].robot_model._elements["root_body"].get("pos").split(" ")])
-        camera_pos = self.env.camera_modder.get_pos(camera_name)
-        camera_pos = np.array(camera_pos) - robot_base_pos # the actual camera position if the robot base is at 0, 0, 0
-        camera_quat = T.convert_quat(self.env.camera_modder.get_quat(camera_name), to="xyzw")
-        camera_rot = T.quat2mat(camera_quat)
-        # robosuite camera is right, up, backward (opengl), but we want right, down, forward (opencv)
-        camera_rot[:, 1] = -camera_rot[:, 1]
-        camera_rot[:, 2] = -camera_rot[:, 2]
-        camera_quat = T.mat2quat(camera_rot)
-
-        camera_fovy = self.env.camera_modder.get_fovy(camera_name)
-
-        camera_pose_wrt_robot = T.make_pose(camera_pos, T.quat2mat(camera_quat))
-        return camera_pose_wrt_robot, camera_fovy
-    
 
     def render(self, mode="human", height=None, width=None, camera_name="agentview"):
         """
